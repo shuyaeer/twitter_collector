@@ -6,7 +6,7 @@ def fetch_tweet(username)
   `twint -u #{username} --json -o json/#{username}.json`
 end
 
-def main(username, user_id)
+def parse(username, user_id, send_message)
   fetch_tweet(username)
   res = File.foreach("json/#{username}.json") do |row|
     res = JSON.load(row)
@@ -15,7 +15,7 @@ def main(username, user_id)
     res['photos'].each do |photo|
       next  if Post.exists?(tweet_id: tweet_id, media_index: media_index)
       message = "#{username}に新規投稿がありました\n#{photo}"
-      send_slack(message)
+      send_slack(message) if send_message
       Post.create(
         user_id: user_id,
         status: 1,
@@ -42,7 +42,6 @@ def send_slack(message)
     http.request(request)
   end
 
-  # response.code
   response.body
 end
 
@@ -53,6 +52,6 @@ if __FILE__ == $0
   else
     record = User.find_by(username: username)
     user_id = record.id
-    main(username, user_id)
+    parse(username, user_id, nil)
   end
 end
