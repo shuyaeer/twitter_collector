@@ -1,24 +1,9 @@
-require 'net/http'
-require 'json'
-require "active_record"
-require 'logger'
-require 'open-uri'
+require_relative 'common'
+# twitter の公式apiを仕様
 
 class UserTimeline
   def initialize
     @username = ARGV[0]
-    ActiveRecord::Base.establish_connection(
-      adapter:  "mysql2",
-      host:     "localhost",
-      username: "root",
-      password: "",
-      database: "Twitter",
-    )
-
-    class Post < ActiveRecord::Base
-    end
-
-    ActiveRecord::Base.logger = Logger.new(STDERR)
   end
 
   def reqest_user_timeline(max_id=nil)
@@ -27,7 +12,7 @@ class UserTimeline
     params = URI.decode_www_form(uri.query)
     params << ["screen_name", @username]
     params << ["count", 200]
-    params << ["exclude_replies", false]
+    params << ["exclude_replies", true]
     params << ["include_rts", false]
     params << ["max_id", max_id] if max_id
     uri.query = URI.encode_www_form(params)
@@ -60,7 +45,7 @@ class UserTimeline
       image_url: media_url
     )
   end
-  
+
   def extract_image(tweets)
     tweets.each do |tweet|
       media_index = 1
@@ -70,17 +55,31 @@ class UserTimeline
       next if media_info.nil?
       media_info.each_with_index do |media|
         media_url = media["media_url"] + ':large'
+        # return nil if Post.exists?(tweet_id: tweet_id, media_index: media_index)
         insert_db(tweet_id, media_index, media_url)
-        save_image(media_url, media_index, tweet_id)
+        # save_image(media_url, media_index, tweet_id)
         media_index += 1
       end
       next if additional.nil?
       additional_media = additional["media"][1..-1]
       additional_media.each do |media|
         media_url = media["media_url"] + ':large'
+        # return nil if Post.exists?(tweet_id: tweet_id, media_index: media_index)
         insert_db(tweet_id, media_index, media_url)
-        save_image(media_url, media_index, tweet_id)
+        # save_image(media_url, media_index, tweet_id)
         media_index += 1
+      end
+    end
+  end
+
+  def sample()
+    res_json = reqest_user_timeline()
+    tweets = JSON.parse(res_json)
+    tweets.each do |tweet|
+      media_info = tweet["entities"]["media"]
+      next if media_info.nil?
+      media_info.each_with_index do |media|
+        p media_url = media["media_url"]
       end
     end
   end
@@ -88,16 +87,18 @@ class UserTimeline
   def main()
     res_json = reqest_user_timeline()
     tweets = JSON.parse(res_json)
-    return nil if tweets.nil?
-    extract_image(tweets)
-    max_id = tweets.last['id']
+    return nil if tweets.empty?
+    flg = extract_image(tweets)
+    return nil unless flg
+    max_id = tweets.last['id'].to_i - 1
     latest_id = max_id
     loop do
       res_json = reqest_user_timeline(max_id)
       tweets = JSON.parse(res_json)
-      break if tweets.empty?
-      extract_image(tweets)
-      max_id = tweets.last['id']
+      return nil if tweets.empty?
+      flg = extract_image(tweets)
+      return nil unless flg
+      max_id = tweets.last['id'].to_i - 1
     end
   end
 
@@ -105,5 +106,6 @@ end
 
 if __FILE__ == $0
   hoge = UserTimeline.new
-  hoge.main()
+  # hoge.main()
+  hoge.sample()
 end
