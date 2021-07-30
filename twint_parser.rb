@@ -15,6 +15,13 @@ def parse(username, user_id, send_message)
     res['photos'].each do |photo|
       next  if Post.exists?(tweet_id: tweet_id, media_index: media_index)
       message = "#{username}に新規投稿がありました\n#{photo}"
+      begin
+        tweet_url = 'https://twitter.com/' + username + '/status/' + tweet_id.to_s
+      rescue => exception
+        p username
+        p tweet_id
+        puts exception
+      end
       send_slack(message) if send_message
       Post.create(
         user_id: user_id,
