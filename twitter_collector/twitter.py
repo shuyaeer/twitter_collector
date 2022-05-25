@@ -14,7 +14,7 @@ class Twitter:
             self.default_dir_path = default_dir_path
         if not os.path.isdir(self.default_dir_path):
             os.makedirs(self.default_dir_path)
-        self.BEARER = os.environ['BEARER']
+        self.BEARER = os.environ['TWITTER_BEARER_TOKEN']
 
     def request_user_timeline(self, max_id=None):
         time.sleep(1)
