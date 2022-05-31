@@ -1,13 +1,17 @@
+import argparse
+import csv
 import sys
 import os
+import re
 import time
 import json
 
 import requests
 
 class Twitter:
-    def __init__(self, user_name, default_dir_path=None):
+    def __init__(self, user_name, default_dir_path=None, csv_mode=False):
         self.user_name = user_name
+        self.is_csv = csv_mode
         if default_dir_path is None:
             self.default_dir_path = f'./output/{user_name}'
         else:
@@ -53,6 +57,15 @@ class Twitter:
         self.dl_images(tweet_id, additional_images)
         return
     
+    def text(self, id, tweet):
+        url = None
+        text = tweet['text']
+        text = re.sub(r'\n', ' ', text)
+        if 'http' in text:
+            url = re.findall(r'https?://[\w/:%#\$&\?\(\)~\.=\+\-]+', text)
+            print(url)
+        return [id, text, url]
+    
     def dl_images(self, tweet_id, media_info, image_index=2):
         for media in media_info:
             if media is None:
@@ -69,16 +82,29 @@ class Twitter:
         tweets = json.loads(self.request_user_timeline())
         if not os.path.isdir(f'./{self.default_dir_path}/images'):
             os.makedirs(f'./{self.default_dir_path}/images')
+        id = 1    
         while True:
             max_id = tweets[-1]["id"] - 1
-            for tweet in tweets:
-                self.images(tweet)
+            if self.is_csv:
+                for tweet in tweets:
+                    with open(f'{self.user_name}.csv', 'a') as f:
+                        writer = csv.writer(f)
+                        writer.writerow(self.text(id, tweet))
+                    id += 1
+            else:
+                for tweet in tweets:
+                    self.images(tweet)
             json_obj = self.request_user_timeline(max_id)
             tweets = json.loads(json_obj)
             if tweets == []:
                 break
         return
 
+
+
 if __name__ == '__main__':
-    twitter = Twitter('joymanjoyman')
+    arg_parser = argparse.ArgumentParser()
+    arg_parser.add_argument("--csv", help="optional")
+    args = arg_parser.parse_args()
+    twitter = Twitter('joymanjoyman', csv_mode=args.csv)
     twitter.user_timeline()
