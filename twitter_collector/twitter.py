@@ -58,13 +58,9 @@ class Twitter:
         return
     
     def text(self, id, tweet):
-        url = None
         text = tweet['text']
         text = re.sub(r'\n', ' ', text)
-        if 'http' in text:
-            url = re.findall(r'https?://[\w/:%#\$&\?\(\)~\.=\+\-]+', text)
-            print(url)
-        return [id, text, url]
+        return [id, text]
     
     def dl_images(self, tweet_id, media_info, image_index=2):
         for media in media_info:
@@ -86,11 +82,17 @@ class Twitter:
         while True:
             max_id = tweets[-1]["id"] - 1
             if self.is_csv:
-                for tweet in tweets:
-                    with open(f'{self.user_name}.csv', 'a') as f:
+                with open(f'{self.user_name}.csv', 'a') as f:
+                    for tweet in tweets:
+                        tweet_id = tweet['id']
                         writer = csv.writer(f)
-                        writer.writerow(self.text(id, tweet))
-                    id += 1
+                        row = self.text(id, tweet)
+                        tweet_url = 'https://twitter.com/' + \
+                            self.user_name + '/status/' + str(tweet_id)
+                        row.insert(1, tweet_url)
+                        print(row)
+                        writer.writerow(row)
+                        id += 1
             else:
                 for tweet in tweets:
                     self.images(tweet)
@@ -104,7 +106,9 @@ class Twitter:
 
 if __name__ == '__main__':
     arg_parser = argparse.ArgumentParser()
-    arg_parser.add_argument("--csv", help="optional")
+    arg_parser.add_argument("--username", "-u", required=True)
+    arg_parser.add_argument("--csv", action='store_true')
     args = arg_parser.parse_args()
-    twitter = Twitter('joymanjoyman', csv_mode=args.csv)
+    print('target user is', args.username)
+    twitter = Twitter(args.username, csv_mode=args.csv)
     twitter.user_timeline()
