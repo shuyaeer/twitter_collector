@@ -1,10 +1,16 @@
+import argparse
 import os
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), ''))
 from twitter import Twitter
 
 def main():
-    twitter = Twitter('joymanjoyman')
+    arg_parser = argparse.ArgumentParser()
+    arg_parser.add_argument("--username", "-u", required=True)
+    arg_parser.add_argument("--csv", action='store_true')
+    args = arg_parser.parse_args()
+    print('target user is', args.username)
+    twitter = Twitter(args.username, csv_mode=args.csv)
     twitter.user_timeline()
     return
 
