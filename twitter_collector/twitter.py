@@ -5,6 +5,7 @@ import os
 import re
 import time
 import json
+import datetime
 
 import requests
 
@@ -87,28 +88,38 @@ class Twitter:
         tweets = json.loads(self.request_user_timeline())
         file = open(f'{self.user_name}.csv', 'w')
         writer = csv.writer(file)
-        index = 1
+        writer.writerow(['id', 'url', 'text', 'created_at'])
+        self.index = 1
         while True:
             max_id = tweets[-1]["id"] - 1
             for tweet in tweets:
-                tweet_id = tweet['id']
-                row = [index, self.__text(tweet)]
-                tweet_url = 'https://twitter.com/' + \
-                    self.user_name + '/status/' + str(tweet_id)
-                row.insert(1, tweet_url)
-                print(row)
+                row = self.parse_tweet(tweet)
                 writer.writerow(row)
-                index += 1
             json_obj = self.request_user_timeline(max_id)
             tweets = json.loads(json_obj)
             if tweets == []:
                 break
         file.close()
     
+    def parse_tweet(self, tweet):
+        tweet_id = tweet['id']
+        row = [self.index, self.__text(tweet), self.__created_at(tweet)]
+        tweet_url = 'https://twitter.com/' + \
+            self.user_name + '/status/' + str(tweet_id)
+        row.insert(1, tweet_url)
+        self.index += 1
+        print(row)
+        return row
+
     def __text(self, tweet):
         text = tweet['text']
         text = re.sub(r'\n', ' ', text)
         return text
+
+    def __created_at(self, tweet):
+        created_at = datetime.datetime.strptime(
+            tweet["created_at"], '%a %b %d %H:%M:%S %z %Y').strftime("%Y/%m/%d %H:%M:%S")
+        return created_at
 
 
 if __name__ == '__main__':
