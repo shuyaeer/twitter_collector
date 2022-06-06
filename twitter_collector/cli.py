@@ -10,8 +10,9 @@ def main():
     arg_parser.add_argument("--csv", action='store_true')
     args = arg_parser.parse_args()
     print('target user is', args.username)
-    twitter = Twitter(args.username, csv_mode=args.csv)
-    twitter.user_timeline()
+    twitter = Twitter(args.username)
+    if args.csv:
+        twitter.create_csv()
     return
 
 

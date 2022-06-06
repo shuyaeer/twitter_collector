@@ -57,11 +57,6 @@ class Twitter:
         self.dl_images(tweet_id, additional_images)
         return
     
-    def text(self, id, tweet):
-        text = tweet['text']
-        text = re.sub(r'\n', ' ', text)
-        return [id, text]
-    
     def dl_images(self, tweet_id, media_info, image_index=2):
         for media in media_info:
             if media is None:
@@ -78,30 +73,42 @@ class Twitter:
         tweets = json.loads(self.request_user_timeline())
         if not os.path.isdir(f'./{self.default_dir_path}/images'):
             os.makedirs(f'./{self.default_dir_path}/images')
-        id = 1    
         while True:
             max_id = tweets[-1]["id"] - 1
-            if self.is_csv:
-                with open(f'{self.user_name}.csv', 'a') as f:
-                    for tweet in tweets:
-                        tweet_id = tweet['id']
-                        writer = csv.writer(f)
-                        row = self.text(id, tweet)
-                        tweet_url = 'https://twitter.com/' + \
-                            self.user_name + '/status/' + str(tweet_id)
-                        row.insert(1, tweet_url)
-                        print(row)
-                        writer.writerow(row)
-                        id += 1
-            else:
-                for tweet in tweets:
-                    self.images(tweet)
+            for tweet in tweets:
+                self.images(tweet)
             json_obj = self.request_user_timeline(max_id)
             tweets = json.loads(json_obj)
             if tweets == []:
                 break
         return
-
+    
+    def create_csv(self):
+        tweets = json.loads(self.request_user_timeline())
+        file = open(f'{self.user_name}.csv', 'w')
+        writer = csv.writer(file)
+        index = 1
+        while True:
+            max_id = tweets[-1]["id"] - 1
+            for tweet in tweets:
+                tweet_id = tweet['id']
+                row = [index, self.__text(tweet)]
+                tweet_url = 'https://twitter.com/' + \
+                    self.user_name + '/status/' + str(tweet_id)
+                row.insert(1, tweet_url)
+                print(row)
+                writer.writerow(row)
+                index += 1
+            json_obj = self.request_user_timeline(max_id)
+            tweets = json.loads(json_obj)
+            if tweets == []:
+                break
+        file.close()
+    
+    def __text(self, tweet):
+        text = tweet['text']
+        text = re.sub(r'\n', ' ', text)
+        return text
 
 
 if __name__ == '__main__':
